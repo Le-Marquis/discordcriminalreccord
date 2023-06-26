@@ -27,29 +27,26 @@ async def on_guild_available(guild):
     print(f"Le serveur '{guild.name}' est disponible.")
 
 
-@tasks.loop(minutes=1)  # Exécute la commande toutes les 5 minutes
-async def sort_channels_in_category(ctx):
+@tasks.loop(minutes=1)
+async def sort_channels(ctx):
     guild = ctx.guild
 
-    # Récupère la catégorie "CASIERS"
-    target_category_name = "CASIERS"
-    target_category = discord.utils.get(guild.categories, name=target_category_name)
+    # Crée des catégories pour chaque lettre de l'alphabet
+    for letter in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
+        category_name = letter
+        category = discord.utils.get(guild.categories, name=category_name)
+        if not category:
+            category = await guild.create_category(category_name)
 
-    if not target_category:
-        await ctx.send(f"La catégorie spécifiée '{target_category_name}' n'a pas été trouvée dans ce serveur.")
-        return
+        # Récupère les canaux sans catégorie dont le nom commence par la lettre actuelle (en ignorant la casse)
+        uncategorized_channels = [channel for channel in guild.channels if isinstance(channel, discord.TextChannel) and not channel.category and channel.name.lower().startswith(letter.lower())]
 
-    # Récupère les canaux de la catégorie "CASIERS"
-    channels_in_category = target_category.channels
-
-    # Trie les canaux par ordre alphabétique
-    sorted_channels = sorted(channels_in_category, key=lambda c: c.name)
-
-    # Réorganise les canaux dans la catégorie
-    for index, channel in enumerate(sorted_channels):
-        await channel.edit(position=index)
-
-    await ctx.send("Les canaux dans la catégorie 'CASIERS' ont été triés par ordre alphabétique.")
+        # Déplace les canaux dans la catégorie correspondante
+        for channel in uncategorized_channels:
+            await channel.edit(category=category)
+            print(f"Le canal '{channel.name}' a été déplacé dans la catégorie '{category_name}'.")
+    
+    await ctx.send("Les canaux sans catégorie ont été triés.")
 
 
 class RepportModal(discord.ui.Modal, title="CASIER"):
@@ -64,8 +61,8 @@ class RepportModal(discord.ui.Modal, title="CASIER"):
         paris_timezone = pytz.timezone("Europe/Paris")
         current_time = datetime.now(paris_timezone).strftime("%d-%m-%Y %H:%M:%S")
 
-        target_category_name = "CASIERS"
-        target_category = discord.utils.get(interaction.guild.categories, name=target_category_name)
+        #target_category_name = "CASIERS"
+        #target_category = discord.utils.get(interaction.guild.categories, name=target_category_name)
         channel_name = self.user.value.replace(" ", "-").lower()
         print(channel_name)
             # Check if the channel exists
@@ -84,7 +81,7 @@ class RepportModal(discord.ui.Modal, title="CASIER"):
 
         else:
         # Create a new channel
-            new_channel = await interaction.guild.create_text_channel(channel_name, category=target_category)
+            new_channel = await interaction.guild.create_text_channel(channel_name, )#category=target_category
             embed = discord.Embed(title=f"CASIER JUDICIAIRE ", color=discord.Color.red())
             embed.set_footer(text=f"crée le : {current_time}")
             embed.add_field(name=" 👤 │ Identité du suspect :", value=self.user, inline=False)
@@ -133,4 +130,4 @@ async def sync(ctx):
     await ctx.send('Command tree synced.')
     await ctx.send('You must be the owner to use this command!')
 
-bot.run("")
+bot.run("MTEyMjMzNzAyMjUxOTAyNTY2NQ.GcIB0v.5RwrbIr1kLRM0BH1Tct3zzpK-ieXgSRSXj52EM")
